@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 type Theme = {
   id: string;
@@ -50,15 +51,22 @@ const themes: Theme[] = [
 ];
 
 interface ThemeSelectorProps {
-  onThemeSelect: (theme: Theme) => void;
+  onThemeSelect: (theme: Theme, specificTopic: string) => void;
 }
 
 const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onThemeSelect }) => {
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const [specificTopic, setSpecificTopic] = useState<string>('');
 
   const handleThemeSelect = (theme: Theme) => {
     setSelectedTheme(theme.id);
-    onThemeSelect(theme);
+  };
+
+  const handleTopicSubmit = () => {
+    const theme = themes.find(t => t.id === selectedTheme);
+    if (theme && specificTopic.trim()) {
+      onThemeSelect(theme, specificTopic);
+    }
   };
 
   return (
@@ -88,13 +96,25 @@ const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onThemeSelect }) => {
       </div>
       
       {selectedTheme && (
-        <div className="mt-6 flex justify-center">
-          <Button 
-            className="px-8 py-2 font-medium"
-            onClick={() => onThemeSelect(themes.find(t => t.id === selectedTheme)!)}
-          >
-            Gerar conteúdo
-          </Button>
+        <div className="mt-6 space-y-4">
+          <div className="text-center">
+            <p className="mb-2">Escreva um assunto específico sobre {themes.find(t => t.id === selectedTheme)?.title}:</p>
+            <Input
+              className="max-w-md mx-auto"
+              value={specificTopic}
+              onChange={(e) => setSpecificTopic(e.target.value)}
+              placeholder="Ex: Reforma do ensino médio, políticas de saúde mental..."
+            />
+          </div>
+          <div className="flex justify-center">
+            <Button 
+              className="px-8 py-2 font-medium"
+              disabled={!specificTopic.trim()}
+              onClick={handleTopicSubmit}
+            >
+              Gerar conteúdo
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -15,14 +15,17 @@ interface Theme {
 
 const Index = () => {
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
+  const [specificTopic, setSpecificTopic] = useState<string>('');
   
-  const handleThemeSelect = (theme: Theme) => {
+  const handleThemeSelect = (theme: Theme, topic: string) => {
     setSelectedTheme(theme);
+    setSpecificTopic(topic);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   const handleBack = () => {
     setSelectedTheme(null);
+    setSpecificTopic('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -73,9 +76,9 @@ const Index = () => {
                 <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
                   2
                 </div>
-                <h3 className="text-xl font-bold mb-3">Nossa IA Trabalha</h3>
+                <h3 className="text-xl font-bold mb-3">Defina o Assunto</h3>
                 <p className="text-muted-foreground">
-                  Nossa inteligência artificial gera um conteúdo informativo e acessível.
+                  Especifique o assunto exato sobre o qual você quer aprender.
                 </p>
               </div>
               
@@ -96,7 +99,7 @@ const Index = () => {
         <section className="py-16 bg-secondary/30" id="theme-selector">
           <div className="container-custom">
             {selectedTheme ? (
-              <AIContentDisplay theme={selectedTheme} onBack={handleBack} />
+              <AIContentDisplay theme={selectedTheme} specificTopic={specificTopic} onBack={handleBack} />
             ) : (
               <ThemeSelector onThemeSelect={handleThemeSelect} />
             )}
