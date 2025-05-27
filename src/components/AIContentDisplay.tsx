@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
+import SocialPostGenerator from './SocialPostGenerator';
 
 interface AIContentDisplayProps {
   theme: {
@@ -18,6 +18,7 @@ interface AIContentDisplayProps {
 const AIContentDisplay: React.FC<AIContentDisplayProps> = ({ theme, specificTopic, onBack }) => {
   const [content, setContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showSocialGenerator, setShowSocialGenerator] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -134,13 +135,22 @@ const AIContentDisplay: React.FC<AIContentDisplayProps> = ({ theme, specificTopi
   const handleRegenerate = () => {
     if (theme && specificTopic) {
       generateContent(theme.title, specificTopic);
+      setShowSocialGenerator(false); // Reset social generator when regenerating
     }
+  };
+
+  const handleCreateSocialPost = () => {
+    setShowSocialGenerator(true);
+    // Scroll to social generator
+    setTimeout(() => {
+      document.getElementById('social-generator')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   if (!theme) return null;
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-8">
       <div className="flex items-center gap-3 mb-6">
         <Button variant="outline" onClick={onBack}>
           Voltar
@@ -193,6 +203,9 @@ const AIContentDisplay: React.FC<AIContentDisplayProps> = ({ theme, specificTopi
               <Button variant="outline" onClick={handleShareContent}>
                 Compartilhar
               </Button>
+              <Button variant="outline" onClick={handleCreateSocialPost}>
+                Criar post social
+              </Button>
               <Button onClick={handleRegenerate}>
                 Regenerar conteúdo
               </Button>
@@ -200,6 +213,17 @@ const AIContentDisplay: React.FC<AIContentDisplayProps> = ({ theme, specificTopi
           </div>
         )}
       </Card>
+
+      {/* Social Post Generator */}
+      {showSocialGenerator && content && !isLoading && (
+        <div id="social-generator">
+          <SocialPostGenerator 
+            theme={theme}
+            specificTopic={specificTopic}
+            content={content}
+          />
+        </div>
+      )}
     </div>
   );
 };
