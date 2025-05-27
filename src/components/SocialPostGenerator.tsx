@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Instagram, Facebook, Twitter, Copy, Download } from 'lucide-react';
 
 interface SocialPostGeneratorProps {
@@ -20,12 +19,14 @@ const SocialPostGenerator: React.FC<SocialPostGeneratorProps> = ({ theme, specif
   const [selectedPlatform, setSelectedPlatform] = useState<'instagram' | 'facebook' | 'twitter'>('instagram');
   const [generatedPost, setGeneratedPost] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
   const platforms = [
-    { id: 'instagram' as const, name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
-    { id: 'facebook' as const, name: 'Facebook', icon: Facebook, color: 'bg-blue-600' },
-    { id: 'twitter' as const, name: 'Twitter', icon: Twitter, color: 'bg-sky-500' }
+    { id: 'instagram' as const, name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500', bgColor: '#E1306C' },
+    { id: 'facebook' as const, name: 'Facebook', icon: Facebook, color: 'bg-blue-600', bgColor: '#1877F2' },
+    { id: 'twitter' as const, name: 'Twitter', icon: Twitter, color: 'bg-sky-500', bgColor: '#1DA1F2' }
   ];
 
   const generatePost = () => {
@@ -91,18 +92,135 @@ Política pública descomplicada! 👇
     });
   };
 
-  const downloadAsImage = () => {
-    // Simular download de imagem
-    toast({
-      title: "Imagem gerada!",
-      description: "Uma versão visual do post foi criada para download.",
+  const downloadAsImage = async () => {
+    if (!generatedPost) return;
+    
+    setIsDownloading(true);
+    
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const selectedPlatformData = platforms.find(p => p.id === selectedPlatform);
+      if (!selectedPlatformData) return;
+
+      // Set canvas dimensions based on platform
+      const dimensions = {
+        instagram: { width: 1080, height: 1080 },
+        facebook: { width: 1200, height: 630 },
+        twitter: { width: 1200, height: 675 }
+      };
+
+      const { width, height } = dimensions[selectedPlatform];
+      canvas.width = width;
+      canvas.height = height;
+
+      // Create gradient background
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, selectedPlatformData.bgColor);
+      gradient.addColorStop(1, '#ffffff');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Add platform branding
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${selectedPlatformData.name} Post`, width / 2, 80);
+
+      // Add theme icon and title
+      ctx.fillStyle = '#333333';
+      ctx.font = 'bold 36px Arial';
+      ctx.fillText(`${theme.icon} ${theme.title}`, width / 2, 150);
+
+      // Add topic
+      ctx.fillStyle = '#666666';
+      ctx.font = '28px Arial';
+      ctx.fillText(`Assunto: ${specificTopic}`, width / 2, 200);
+
+      // Add post content with word wrapping
+      ctx.fillStyle = '#333333';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'left';
+      
+      const lines = wrapText(ctx, generatedPost, width - 100);
+      let yPosition = 280;
+      
+      lines.forEach((line, index) => {
+        if (yPosition < height - 100) {
+          ctx.fillText(line, 50, yPosition);
+          yPosition += 32;
+        }
+      });
+
+      // Add footer
+      ctx.fillStyle = selectedPlatformData.bgColor;
+      ctx.font = 'bold 20px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Gerado por IA - Política Pública Acessível', width / 2, height - 40);
+
+      // Download the image
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `post-${selectedPlatform}-${Date.now()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+          toast({
+            title: "Imagem baixada!",
+            description: `Post para ${selectedPlatformData.name} foi salvo como imagem.`,
+          });
+        }
+      }, 'image/png');
+
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      toast({
+        title: "Erro!",
+        description: "Não foi possível gerar a imagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+      const testLine = currentLine + word + ' ';
+      const metrics = ctx.measureText(testLine);
+      
+      if (metrics.width > maxWidth && currentLine !== '') {
+        lines.push(currentLine);
+        currentLine = word + ' ';
+      } else {
+        currentLine = testLine;
+      }
     });
+    
+    lines.push(currentLine);
+    return lines.slice(0, 20); // Limit to 20 lines
   };
 
   const selectedPlatformData = platforms.find(p => p.id === selectedPlatform);
 
   return (
     <div className="space-y-6">
+      {/* Hidden canvas for image generation */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+      
       <div className="text-center">
         <h3 className="text-2xl font-bold mb-2">Crie um post para redes sociais</h3>
         <p className="text-muted-foreground">
@@ -176,9 +294,13 @@ Política pública descomplicada! 👇
                 <Copy size={16} className="mr-2" />
                 Copiar texto
               </Button>
-              <Button variant="outline" onClick={downloadAsImage}>
+              <Button 
+                variant="outline" 
+                onClick={downloadAsImage}
+                disabled={isDownloading}
+              >
                 <Download size={16} className="mr-2" />
-                Baixar como imagem
+                {isDownloading ? 'Gerando...' : 'Baixar como imagem'}
               </Button>
               <Button onClick={generatePost}>
                 Regenerar post
